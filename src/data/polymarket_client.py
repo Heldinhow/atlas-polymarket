@@ -31,24 +31,25 @@ class PolymarketClient:
             params["category"] = category
 
         response = await client.get("/markets", params=params)
-        await response.raise_for_status()
-        data = await response.json()
-        return data.get("markets", [])
+        response.raise_for_status()
+        data = response.json()
+        # Polymarket returns data in "data" field
+        return data.get("data", [])
 
     async def get_market_price(self, market_id: str) -> str:
         """Get current price for a specific market."""
         client = await self._get_client()
         response = await client.get(f"/markets/{market_id}")
-        await response.raise_for_status()
-        data = await response.json()
+        response.raise_for_status()
+        data = response.json()
         return data.get("price", "0.0")
 
     async def get_market_volume(self, market_id: str) -> float:
         """Get 24h volume for a specific market."""
         client = await self._get_client()
         response = await client.get(f"/markets/{market_id}/volume")
-        await response.raise_for_status()
-        data = await response.json()
+        response.raise_for_status()
+        data = response.json()
         return float(data.get("volume", 0.0))
 
     async def close(self) -> None:

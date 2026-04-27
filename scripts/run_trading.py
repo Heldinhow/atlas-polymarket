@@ -49,16 +49,23 @@ async def run_trading_cycle():
     janus = JANUS()
     soros = SorosEngine()
 
-    # Fetch market data
+    # Fetch market data - limit to top 20 by volume to keep prompts manageable
     polymarket = PolymarketClient(api_key=settings.polymarket_api_url)
-    markets = await polymarket.get_markets(category="esports")
-    print(f"Fetched {len(markets)} markets")
+    all_markets = await polymarket.get_markets()
+    # Filter to esports/sports markets and limit to top 20
+    markets = sorted(all_markets, key=lambda x: x.get("volume24hr", 0), reverse=True)[:20]
+    print(f"Fetched {len(markets)} markets (from {len(all_markets)} total)")
 
     # Layer 1: Macro analysis
     print("Running Layer 1 (Macro) analysis...")
     layer1_results = []
     for agent in layer1_agents:
-        result = await agent.analyze({"markets": markets})
+        # Summarize markets for prompt (full list too big)
+        market_summary = [
+            {"question": m.get("question", "")[:80], "volume": m.get("volume24hr", 0)}
+            for m in markets[:10]  # Only top 10 in prompt
+        ]
+        result = await agent.analyze({"markets": market_summary})
         layer1_results.append(result)
         print(f"  {agent.name}: {result.get('regime', 'UNKNOWN')}")
 
